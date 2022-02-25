@@ -151,7 +151,7 @@ class NtripClient:
                     break
                 self.parseStream(read)
             except Exception as e:
-                self.updateStatus(CONNECTION_ERROR)
                 self.status.exception = e
+                self.updateStatus(CONNECTION_ERROR)
                 raise e
         pass
