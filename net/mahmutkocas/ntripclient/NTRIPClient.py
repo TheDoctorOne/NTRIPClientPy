@@ -1,7 +1,9 @@
 import base64
 import socket
+import time
 
 from net.mahmutkocas.ntripclient.NTRIPStatus import NTRIPStatus
+from net.mahmutkocas.ntripclient.NMEADevice import GNSSDevice
 
 PASS_WRONG = NTRIPStatus("PASS_WRONG", -3)
 CONNECTION_ERROR = NTRIPStatus("CONNECTION_ERROR", -2)
@@ -23,7 +25,8 @@ class NtripClient:
     mountPointsCallback = []
     ntripDataCallback = []
 
-    latestGGA = ""
+    gnssDevice : GNSSDevice
+
     mPoints = ""
 
     status = IDLE
@@ -33,17 +36,16 @@ class NtripClient:
     conn: socket
     SOCKET_BUFFER_SIZE = 2048
 
-    connTimeout = 10
+    connTimeout = 120
+    GGAWaitTimeoutSec = 45
 
-    def __init__(self, ip: str, port: int, mountPoint: str, username: str, password: str):
+    def __init__(self, gnssDevice: GNSSDevice, ip: str, port: int, mountPoint: str, username: str, password: str):
+        self.gnssDevice = gnssDevice
         self.ip = ip
         self.port = port
         self.mountPoint = mountPoint
         self.username = username
         self.password = password
-
-    def updateGGA(self, gga):
-        self.latestGGA = gga
 
     def addStatusCallback(self, callback):
         self.statusCallback.append(callback)
@@ -116,16 +118,22 @@ class NtripClient:
             if isinstance(data, bytes) or isinstance(data, bytearray):
                 data = data.decode('ascii')
 
-            self.streamData += data
-
-            if not isinstance(self.streamData, str):
+            if not isinstance(data, str):
                 self.updateStatus(STREAM_NOT_VALID)
                 return
 
+            self.streamData += data
+
         if self.status == IDLE:
             if self.successResponse in self.streamData:
-                self.sendToServer(self.latestGGA + "\r\n")
-                self.updateStatus(NTRIP_DATA)
+                while not self.gnssDevice.isGGAValid() and self.GGAWaitTimeoutSec > 0:
+                    time.sleep(1)
+                    self.GGAWaitTimeoutSec -= 1
+                self.GGAWaitTimeoutSec = NtripClient.GGAWaitTimeoutSec  # Reset timeout
+
+                if self.gnssDevice.isGGAValid():
+                    self.sendToServer(self.gnssDevice.getGGA() + "\r\n")
+                    self.updateStatus(NTRIP_DATA)
 
             if self.sourceTableResponse in self.streamData:
                 self.updateStatus(SOURCE_TABLE_DOWNLOADING)
@@ -148,6 +156,7 @@ class NtripClient:
         self.conn.connect((self.ip, self.port))
         self.conn.settimeout(self.connTimeout)
         self.conn.send(self.buildHttpHeader(self.mountPoint, self.username, self.password).encode('ascii'))
+        print('Run')
         while True:
             try:
                 read = self.conn.recv(self.SOCKET_BUFFER_SIZE)
