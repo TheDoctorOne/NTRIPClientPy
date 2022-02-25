@@ -160,7 +160,6 @@ class BasicUBXDevice(GNSSDevice):  # Dummy device which only parses PVT Message 
                             while ser.in_waiting < (m.mLen + 1):
                                 import time
                                 time.sleep(0.001)
-                            print("Ser wait ", ser.in_waiting)
                             content = ser.read(m.mLen - 1)
                             crcRead = ser.read(2)
                             if crcRead == self.crcUBX(ids + content):
