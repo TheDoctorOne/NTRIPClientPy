@@ -3,6 +3,7 @@ import socket
 
 from net.mahmutkocas.ntripclient.NTRIPStatus import NTRIPStatus
 
+PASS_WRONG = NTRIPStatus("PASS_WRONG", -3)
 CONNECTION_ERROR = NTRIPStatus("CONNECTION_ERROR", -2)
 STREAM_NOT_VALID = NTRIPStatus("STREAM_NOT_VALID", -1)
 IDLE = NTRIPStatus("IDLE", 0)
@@ -54,7 +55,7 @@ class NtripClient:
         self.ntripDataCallback.append(callback)
 
     def updateStatusCallback(self, status: NTRIPStatus):
-        for c in self.mountPointsCallback:
+        for c in self.statusCallback:
             c(status)
 
     def updateMountPointsCallback(self, sTable):
@@ -130,6 +131,10 @@ class NtripClient:
                 self.updateStatus(SOURCE_TABLE_DOWNLOADING)
                 if self.resolveSourceTableToMountPoints(self.streamData):
                     self.updateStatus(SOURCE_TABLE_DOWNLOADED)
+
+            if self.passWrongResponse in self.streamData:
+                self.updateStatus(PASS_WRONG)
+                self.closeSocket()
 
         elif self.status == SOURCE_TABLE_DOWNLOADING:
             if self.resolveSourceTableToMountPoints(self.streamData):
