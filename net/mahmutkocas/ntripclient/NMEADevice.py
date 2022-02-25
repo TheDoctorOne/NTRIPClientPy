@@ -20,6 +20,15 @@ class GNSSDevice(ABC):
         return "%02X" % crc
 
 
+class DummyDevice(GNSSDevice):
+
+    def getGGA(self) -> str:
+        return "$GPGGA,120304.914,3913.091,N,03248.906,E,1,12,1.0,0.0,M,0.0,M,,*60"
+
+    def isGGAValid(self) -> bool:
+        return True
+
+
 class UBXMessage:
     classId: bytes
     ID: bytes
