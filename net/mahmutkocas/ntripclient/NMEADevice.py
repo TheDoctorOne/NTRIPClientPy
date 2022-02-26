@@ -23,7 +23,7 @@ class GNSSDevice(ABC):
 class DummyDevice(GNSSDevice):
 
     def getGGA(self) -> str:
-        return "$GPGGA,120304.914,3913.091,N,03248.906,E,1,12,1.0,0.0,M,0.0,M,,*60"
+        return "$GPGGA,000519.068,5231.744,N,01324.261,E,1,12,1.0,0.0,M,0.0,M,,*6E"
 
     def isGGAValid(self) -> bool:
         return True
